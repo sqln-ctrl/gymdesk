@@ -20,20 +20,20 @@ Definition of done:
 - Base shell is responsive.
 
 ## Phase 1 — Data Model and Authentication
-- [ ] Model Gym and Branch.
-- [ ] Model User, Role, Permission, role mappings, branch assignments.
-- [ ] Implement authentication.
-- [ ] Implement permission helpers.
-- [ ] Add protected dashboard layout.
-- [ ] Add owner/admin bootstrap process.
-- [ ] Add login/logout/password reset flow.
-- [ ] Add audit-log model/service.
-- [ ] Seed core roles and permissions.
+- [x] Model Gym and Branch.
+- [x] Model User, Role, Permission, role mappings, branch assignments.
+- [x] Implement authentication.
+- [x] Implement permission helpers.
+- [x] Add protected dashboard layout.
+- [x] Add owner/admin bootstrap process.
+- [x] Add login/logout/password reset flow.
+- [x] Add audit-log model/service.
+- [x] Seed core roles and permissions.
 
 Tests:
-- [ ] Unauthorized user blocked.
-- [ ] Role permission checks.
-- [ ] Branch scoping.
+- [x] Unauthorized user blocked.
+- [x] Role permission checks.
+- [x] Branch scoping.
 
 ## Phase 2 — Member Management
 - [ ] Model Member.

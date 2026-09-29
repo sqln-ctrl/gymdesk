@@ -16,6 +16,8 @@ Do not use this file as a task list; use `TASKS.md` for that.
 - Framework: Next.js App Router + TypeScript strict mode.
 - Database: SQLite for the initial local build; migrate to Supabase/PostgreSQL before production.
 - ORM: Prisma.
+- Authentication: database-backed opaque sessions stored as SHA-256 hashes; cookies are HTTP-only, SameSite=Lax, and secure in production.
+- Passwords: Node.js scrypt with per-password random salts; resetting a password invalidates every existing session.
 - UI: Tailwind CSS + shadcn/ui.
 - Charts: Recharts.
 - Validation: Zod.
@@ -68,6 +70,7 @@ Add only durable notes below this line as implementation progresses.
 
 - 2026-09-29: Phase 0 foundation uses Prisma 5.22 with a committed SQLite migration. Models avoid SQLite-specific native types to simplify the planned Supabase/PostgreSQL move.
 - 2026-09-29: The application shell uses Tailwind with shadcn-compatible shared components; Next.js, Prisma, and database access remain server-side by default.
+- 2026-09-29: Phase 1 owner bootstrap creates the first gym, branch, and owner, then provisions core roles/permissions. The development reset flow exposes a one-time link only outside production; a production delivery adapter belongs to Phase 12.
 
 <!-- Example:
 - 2026-10-02: Chose Auth.js credentials + database sessions because staff session revocation is required.

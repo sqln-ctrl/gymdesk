@@ -1,11 +1,14 @@
-const navigationGroups = [
-  ["Overview"],
-  ["Members", "Memberships", "Attendance", "Billing"],
+import Link from "next/link";
+
+import type { CurrentUser } from "@/lib/auth/session";
+
+const upcomingNavigation = [
+  ["Memberships", "Attendance", "Billing"],
   ["Trainers & staff", "Workouts", "Classes", "Equipment"],
   ["Reports", "Settings"],
 ] as const;
 
-export function AppSidebar() {
+export function AppSidebar({ user }: { user: CurrentUser }) {
   return (
     <aside className="hidden w-64 shrink-0 border-r border-[var(--border)] bg-[var(--surface)] px-3 py-5 lg:flex lg:flex-col">
       <div className="flex items-center gap-3 px-3 pb-7">
@@ -19,15 +22,23 @@ export function AppSidebar() {
       </div>
 
       <nav aria-label="Primary navigation" className="space-y-5">
-        {navigationGroups.map((group) => (
+        <Link
+          className="block rounded-lg bg-[var(--brand-soft)] px-3 py-2 text-sm font-medium text-[var(--brand)]"
+          href="/dashboard"
+        >
+          Overview
+        </Link>
+        <Link
+          className="block rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
+          href="/members"
+        >
+          Members
+        </Link>
+        {upcomingNavigation.map((group) => (
           <div key={group[0]} className="space-y-1">
             {group.map((item) => (
               <span
-                className={`block rounded-lg px-3 py-2 text-sm font-medium ${
-                  item === "Overview"
-                    ? "bg-[var(--brand-soft)] text-[var(--brand)]"
-                    : "text-[var(--muted-foreground)]"
-                }`}
+                className="block rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted-foreground)]"
                 key={item}
               >
                 {item}
@@ -43,7 +54,7 @@ export function AppSidebar() {
         </p>
         <p className="mt-1 text-sm font-medium">Local development</p>
         <p className="mt-1 text-xs leading-5 text-[var(--muted-foreground)]">
-          SQLite is active for the first build.
+          Signed in as {user.roleKeys[0] ?? "staff"}.
         </p>
       </div>
     </aside>

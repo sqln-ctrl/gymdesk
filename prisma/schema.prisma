@@ -58,10 +58,46 @@ model User {
   attendanceEvents Attendance[] @relation("AttendanceSourceUser")
   paymentsCreated  Payment[]    @relation("PaymentCreatedBy")
   auditLogs        AuditLog[]   @relation("AuditActor")
+  sessions         UserSession[]
+  passwordResetTokens PasswordResetToken[]
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
   @@index([status])
+}
+
+model UserSession {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
+}
+
+model LoginThrottle {
+  subjectHash  String   @id
+  attempts     Int      @default(0)
+  windowStartedAt DateTime
+  lockedUntil  DateTime?
+  updatedAt    DateTime @updatedAt
 }
 
 model Role {
