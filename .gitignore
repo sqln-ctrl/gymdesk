@@ -1,0 +1,17 @@
+# dependencies
+/node_modules
+
+# Next.js
+/.next
+/out
+/tsconfig.tsbuildinfo
+
+# local environment and SQLite database
+.env
+.env.local
+/prisma/*.db
+/prisma/*.db-journal
+
+# tests and logs
+/coverage
+*.log

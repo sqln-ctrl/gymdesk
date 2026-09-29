@@ -1,0 +1,325 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Gym {
+  id        String   @id @default(cuid())
+  name      String
+  logoUrl   String?
+  currency  String   @default("PKR")
+  timezone  String   @default("Asia/Karachi")
+  branches  Branch[]
+  members   Member[]
+  plans     MembershipPlan[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Branch {
+  id              String          @id @default(cuid())
+  gymId           String
+  code            String
+  name            String
+  phone           String?
+  email           String?
+  address         String?
+  isActive        Boolean         @default(true)
+  gym             Gym             @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  staffAssignments BranchUser[]
+  primaryMembers  Member[]        @relation("PrimaryBranch")
+  memberships     Membership[]
+  attendance      Attendance[]
+  invoices        Invoice[]
+  payments        Payment[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@unique([gymId, code])
+  @@index([gymId, isActive])
+}
+
+model User {
+  id               String       @id @default(cuid())
+  email            String       @unique
+  passwordHash     String?
+  name             String
+  phone            String?
+  status           String       @default("ACTIVE")
+  roles            UserRole[]
+  branchAssignments BranchUser[]
+  staffProfile     StaffProfile?
+  assignedMembers  Member[]     @relation("AssignedTrainer")
+  membershipsCreated Membership[] @relation("MembershipCreatedBy")
+  attendanceEvents Attendance[] @relation("AttendanceSourceUser")
+  paymentsCreated  Payment[]    @relation("PaymentCreatedBy")
+  auditLogs        AuditLog[]   @relation("AuditActor")
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([status])
+}
+
+model Role {
+  id          String           @id @default(cuid())
+  key         String           @unique
+  name        String
+  description String?
+  users       UserRole[]
+  permissions RolePermission[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  key         String           @unique
+  name        String
+  description String?
+  roles       RolePermission[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model UserRole {
+  userId String
+  roleId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model BranchUser {
+  branchId String
+  userId   String
+  branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([branchId, userId])
+}
+
+model StaffProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  hireDate        DateTime?
+  specialization  String?
+  certifications  String?
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Member {
+  id                String        @id @default(cuid())
+  gymId             String
+  primaryBranchId   String
+  memberCode        String
+  firstName         String
+  lastName          String
+  phone             String?
+  email             String?
+  avatarUrl         String?
+  dateOfBirth       DateTime?
+  emergencyContactName String?
+  emergencyContactPhone String?
+  address           String?
+  joinDate          DateTime      @default(now())
+  status            String        @default("ACTIVE")
+  assignedTrainerId String?
+  notes             String?
+  gym               Gym           @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  primaryBranch     Branch        @relation("PrimaryBranch", fields: [primaryBranchId], references: [id], onDelete: Restrict)
+  assignedTrainer   User?         @relation("AssignedTrainer", fields: [assignedTrainerId], references: [id], onDelete: SetNull)
+  memberships       Membership[]
+  attendance        Attendance[]
+  invoices          Invoice[]
+  payments          Payment[]
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@unique([gymId, memberCode])
+  @@index([gymId, status])
+  @@index([primaryBranchId, status])
+  @@index([phone])
+  @@index([email])
+  @@index([lastName, firstName])
+}
+
+model MembershipPlan {
+  id                    String       @id @default(cuid())
+  gymId                 String
+  name                  String
+  description           String?
+  durationValue         Int
+  durationUnit          String
+  priceMinor            Int
+  registrationFeeMinor  Int          @default(0)
+  taxRateBasisPoints    Int          @default(0)
+  freezeDaysAllowed     Int          @default(0)
+  graceDays             Int          @default(0)
+  isActive              Boolean      @default(true)
+  gym                   Gym          @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  memberships           Membership[]
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  @@unique([gymId, name])
+  @@index([gymId, isActive])
+}
+
+model Membership {
+  id                 String             @id @default(cuid())
+  memberId           String
+  branchId           String
+  planId             String
+  startDate          DateTime
+  endDate            DateTime
+  status             String             @default("PENDING")
+  priceMinor         Int
+  discountMinor      Int                @default(0)
+  taxMinor           Int                @default(0)
+  totalMinor         Int
+  freezeDaysUsed     Int                @default(0)
+  cancelledAt        DateTime?
+  cancellationReason String?
+  createdById        String
+  member             Member             @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  branch             Branch             @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  plan               MembershipPlan     @relation(fields: [planId], references: [id], onDelete: Restrict)
+  createdBy          User               @relation("MembershipCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  freezes            MembershipFreeze[]
+  invoiceItems       InvoiceItem[]
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([memberId, status, endDate])
+  @@index([branchId, status, endDate])
+}
+
+model MembershipFreeze {
+  id            String     @id @default(cuid())
+  membershipId  String
+  startDate     DateTime
+  endDate       DateTime
+  reason        String
+  extendsExpiry Boolean    @default(true)
+  createdById   String
+  membership    Membership @relation(fields: [membershipId], references: [id], onDelete: Restrict)
+  createdAt     DateTime   @default(now())
+
+  @@index([membershipId, startDate])
+}
+
+model Attendance {
+  id             String   @id @default(cuid())
+  memberId       String
+  branchId       String
+  checkInAt      DateTime @default(now())
+  checkOutAt     DateTime?
+  method         String
+  sourceUserId   String?
+  overrideReason String?
+  member         Member   @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  branch         Branch   @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  sourceUser     User?    @relation("AttendanceSourceUser", fields: [sourceUserId], references: [id], onDelete: SetNull)
+
+  @@index([memberId, checkInAt])
+  @@index([branchId, checkInAt])
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  memberId      String
+  branchId      String
+  invoiceNumber String        @unique
+  issueDate     DateTime      @default(now())
+  dueDate       DateTime?
+  status        String        @default("DRAFT")
+  subtotalMinor Int
+  discountMinor Int           @default(0)
+  taxMinor      Int           @default(0)
+  totalMinor    Int
+  paidMinor     Int           @default(0)
+  balanceMinor  Int
+  member        Member        @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  branch        Branch        @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  items         InvoiceItem[]
+  payments      Payment[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([branchId, status, issueDate])
+  @@index([memberId, status])
+}
+
+model InvoiceItem {
+  id             String      @id @default(cuid())
+  invoiceId      String
+  membershipId   String?
+  type           String
+  description    String
+  quantity       Int         @default(1)
+  unitPriceMinor Int
+  totalMinor     Int
+  invoice        Invoice     @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  membership     Membership? @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+
+  @@index([invoiceId])
+  @@index([membershipId])
+}
+
+model Payment {
+  id                   String   @id @default(cuid())
+  invoiceId            String
+  memberId             String
+  branchId             String
+  amountMinor          Int
+  method               String
+  reference            String?
+  paidAt               DateTime @default(now())
+  status               String   @default("COMPLETED")
+  gatewayProvider      String?
+  gatewayTransactionId String?
+  createdById          String
+  invoice              Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  member               Member   @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  branch               Branch   @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  createdBy            User     @relation("PaymentCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt            DateTime @default(now())
+
+  @@unique([gatewayProvider, gatewayTransactionId])
+  @@index([branchId, paidAt])
+  @@index([invoiceId])
+  @@index([memberId, paidAt])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  action      String
+  entityType  String
+  entityId    String
+  beforeJson  String?
+  afterJson   String?
+  metadataJson String?
+  actor       User?    @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorUserId, createdAt])
+  @@index([createdAt])
+}
