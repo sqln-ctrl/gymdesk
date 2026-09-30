@@ -14,6 +14,21 @@ function optionalEmail() {
   );
 }
 
+function optionalPhone() {
+  return z.preprocess(
+    (value) => {
+      if (typeof value !== "string") return value;
+
+      const normalized = value.trim().replace(/[\s().-]/g, "");
+      return normalized === "" ? undefined : normalized;
+    },
+    z
+      .string()
+      .regex(/^\+?[0-9]{7,20}$/, "Enter a valid phone number.")
+      .optional(),
+  );
+}
+
 const optionalDate = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
   z
@@ -31,11 +46,11 @@ export const memberInputSchema = z.object({
   primaryBranchId: z.string().min(1, "Choose a branch."),
   firstName: z.string().trim().min(1, "Enter a first name.").max(100),
   lastName: z.string().trim().min(1, "Enter a last name.").max(100),
-  phone: optionalText(30),
+  phone: optionalPhone(),
   email: optionalEmail(),
   dateOfBirth: optionalDate,
   emergencyContactName: optionalText(150),
-  emergencyContactPhone: optionalText(30),
+  emergencyContactPhone: optionalPhone(),
   address: optionalText(500),
   assignedTrainerId: optionalText(100),
   notes: optionalText(5_000),

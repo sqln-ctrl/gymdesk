@@ -25,11 +25,23 @@ describe("member input validation", () => {
     expect(parsed.dateOfBirth?.toISOString()).toBe("1995-02-14T00:00:00.000Z");
   });
 
+  it("normalizes a phone number for reliable duplicate detection", () => {
+    const parsed = memberInputSchema.parse({
+      ...validMember,
+      phone: "+92 (300) 123-4567",
+      emergencyContactPhone: "0300 123 4567",
+    });
+
+    expect(parsed.phone).toBe("+923001234567");
+    expect(parsed.emergencyContactPhone).toBe("03001234567");
+  });
+
   it("rejects invalid identity and contact inputs", () => {
     const parsed = memberInputSchema.safeParse({
       ...validMember,
       firstName: "",
       email: "not-an-email",
+      phone: "not-a-phone",
       dateOfBirth: "14/02/1995",
     });
 
@@ -38,6 +50,7 @@ describe("member input validation", () => {
       expect(parsed.error.flatten().fieldErrors).toMatchObject({
         firstName: expect.any(Array),
         email: expect.any(Array),
+        phone: expect.any(Array),
         dateOfBirth: expect.any(Array),
       });
     }

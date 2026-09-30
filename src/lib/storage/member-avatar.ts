@@ -5,6 +5,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const MAX_AVATAR_BYTES = 900 * 1024;
+const MEMBER_ID_PATTERN = /^c[a-z0-9]{24,}$/;
 
 type AvatarFormat = { extension: "jpg" | "png" | "webp"; mimeType: string };
 
@@ -34,6 +35,9 @@ export async function storeMemberAvatar(
   memberId: string,
   file: File,
 ): Promise<{ ok: true; url: string; mimeType: string } | { ok: false; message: string }> {
+  if (!MEMBER_ID_PATTERN.test(memberId)) {
+    return { ok: false, message: "The selected member is invalid." };
+  }
   if (file.size === 0) {
     return { ok: false, message: "Choose an image to upload." };
   }

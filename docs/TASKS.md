@@ -36,22 +36,22 @@ Tests:
 - [x] Branch scoping.
 
 ## Phase 2 — Member Management
-- [ ] Model Member.
-- [ ] Member code generation strategy.
-- [ ] Member list with server-side pagination/search/filter.
-- [ ] Create member form.
-- [ ] Edit member.
-- [ ] Member profile layout/tabs.
-- [ ] Archive/reactivate member.
-- [ ] Assign trainer.
-- [ ] CSV export.
-- [ ] CSV import with preview and validation.
-- [ ] Avatar upload.
+- [x] Model Member.
+- [x] Member code generation strategy.
+- [x] Member list with server-side pagination/search/filter.
+- [x] Create member form.
+- [x] Edit member.
+- [x] Member profile layout/tabs.
+- [x] Archive/reactivate member.
+- [x] Assign trainer.
+- [x] CSV export.
+- [x] CSV import with preview and validation.
+- [x] Avatar upload.
 
 Tests:
-- [ ] Duplicate email/phone behavior according to chosen business rule.
-- [ ] Permission checks.
-- [ ] Search/filter.
+- [x] Duplicate email/phone behavior according to chosen business rule.
+- [x] Permission checks.
+- [x] Search/filter.
 
 ## Phase 3 — Membership Plans and Memberships
 - [ ] Model MembershipPlan, Membership, MembershipFreeze.

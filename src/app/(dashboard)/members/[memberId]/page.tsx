@@ -31,6 +31,8 @@ export default async function MemberProfilePage({ params }: PageProps) {
   if (!member) notFound();
   const canEdit = hasPermission(user, "member.update");
   const canChangeStatus = hasPermission(user, "member.archive");
+  const canSellMembership = hasPermission(user, "membership.sell");
+  const canCheckIn = hasPermission(user, "attendance.checkin");
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -54,6 +56,8 @@ export default async function MemberProfilePage({ params }: PageProps) {
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="secondary"><Link href="/members">Back to members</Link></Button>
             {canEdit ? <Button asChild><Link href={`/members/${member.id}/edit`}>Edit member</Link></Button> : null}
+            {canSellMembership ? <Button asChild><Link href={`/members/${member.id}/memberships/new`}>Sell membership</Link></Button> : null}
+            {canCheckIn ? <Button asChild variant="secondary"><Link href={`/attendance?q=${encodeURIComponent(member.memberCode)}&branchId=${member.branch.id}`}>Check in</Link></Button> : null}
           </div>
         </div>
         {canChangeStatus ? <div className="mt-6 border-t pt-5"><MemberStatusForm currentStatus={member.status} memberId={member.id} /></div> : null}
@@ -61,8 +65,8 @@ export default async function MemberProfilePage({ params }: PageProps) {
 
       <nav aria-label="Member profile sections" className="flex gap-5 overflow-x-auto border-b px-1 text-sm font-medium">
         <span className="border-b-2 border-[var(--brand)] px-1 pb-3 text-[var(--brand)]">Overview</span>
-        <span className="px-1 pb-3 text-[var(--muted-foreground)]">Memberships (coming next)</span>
-        <span className="px-1 pb-3 text-[var(--muted-foreground)]">Attendance (coming next)</span>
+        <Link className="px-1 pb-3 text-[var(--muted-foreground)] hover:text-[var(--foreground)]" href={`/members/${member.id}/memberships`}>Memberships</Link>
+        <Link className="px-1 pb-3 text-[var(--muted-foreground)] hover:text-[var(--foreground)]" href={`/members/${member.id}/attendance`}>Attendance</Link>
         <span className="px-1 pb-3 text-[var(--muted-foreground)]">Billing (coming next)</span>
       </nav>
 

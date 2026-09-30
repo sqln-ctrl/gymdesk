@@ -193,6 +193,8 @@ model Member {
   @@index([phone])
   @@index([email])
   @@index([lastName, firstName])
+  @@unique([gymId, phone])
+  @@unique([gymId, email])
 }
 
 model MembershipPlan {
@@ -254,6 +256,7 @@ model MembershipFreeze {
   reason        String
   extendsExpiry Boolean    @default(true)
   createdById   String
+  unfrozenAt    DateTime?
   membership    Membership @relation(fields: [membershipId], references: [id], onDelete: Restrict)
   createdAt     DateTime   @default(now())
 

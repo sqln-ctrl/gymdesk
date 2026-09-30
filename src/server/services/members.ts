@@ -96,6 +96,65 @@ async function trainerIsEligible(trainerId: string | undefined, branchId: string
   return Boolean(trainer);
 }
 
+function duplicateContactMessage(contact: "email" | "phone"): string {
+  return `Another member in this gym already uses that ${contact}.`;
+}
+
+async function findDuplicateContact(
+  gymId: string,
+  input: Pick<MemberInput, "email" | "phone">,
+  excludeMemberId?: string,
+): Promise<"email" | "phone" | null> {
+  const predicates: Prisma.MemberWhereInput[] = [];
+  if (input.email) predicates.push({ email: input.email });
+  if (input.phone) predicates.push({ phone: input.phone });
+  if (predicates.length === 0) return null;
+
+  const duplicate = await prisma.member.findFirst({
+    where: {
+      gymId,
+      ...(excludeMemberId ? { id: { not: excludeMemberId } } : {}),
+      OR: predicates,
+    },
+    select: { email: true, phone: true },
+  });
+  if (!duplicate) return null;
+  if (input.email && duplicate.email === input.email) return "email";
+  if (input.phone && duplicate.phone === input.phone) return "phone";
+  return null;
+}
+
+function uniqueConstraintTarget(error: Prisma.PrismaClientKnownRequestError): string {
+  const target = error.meta?.target;
+  return Array.isArray(target) ? target.join(" ").toLowerCase() : String(target ?? "").toLowerCase();
+}
+
+function uniqueConflictKind(error: Prisma.PrismaClientKnownRequestError): "email" | "phone" | "memberCode" | null {
+  const target = uniqueConstraintTarget(error);
+  if (target.includes("email")) return "email";
+  if (target.includes("phone")) return "phone";
+  if (target.includes("membercode")) return "memberCode";
+  return null;
+}
+
+function duplicateContactInImport(members: MemberInput[]): "email" | "phone" | null {
+  const emails = new Set<string>();
+  const phones = new Set<string>();
+
+  for (const member of members) {
+    if (member.email) {
+      if (emails.has(member.email)) return "email";
+      emails.add(member.email);
+    }
+    if (member.phone) {
+      if (phones.has(member.phone)) return "phone";
+      phones.add(member.phone);
+    }
+  }
+
+  return null;
+}
+
 export async function getMemberFormOptions(actor: CurrentUser): Promise<MemberFormOptions> {
   if (
     !hasPermission(actor, "member.read") &&
@@ -215,6 +274,7 @@ export async function getMemberDetail(actor: CurrentUser, memberId: string): Pro
     select: {
       id: true,
       memberCode: true,
+      avatarUrl: true,
       firstName: true,
       lastName: true,
       phone: true,
@@ -262,6 +322,10 @@ export async function createMember(
   if (!(await trainerIsEligible(input.assignedTrainerId, branch.id))) {
     return { ok: false, message: "Choose a trainer assigned to the selected branch." };
   }
+  const duplicateContact = await findDuplicateContact(branch.gymId, input);
+  if (duplicateContact) {
+    return { ok: false, message: duplicateContactMessage(duplicateContact) };
+  }
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
     try {
@@ -302,6 +366,13 @@ export async function createMember(
       if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") {
         return { ok: false, message: "Unable to create this member. Please try again." };
       }
+      const conflict = uniqueConflictKind(error);
+      if (conflict === "email" || conflict === "phone") {
+        return { ok: false, message: duplicateContactMessage(conflict) };
+      }
+      if (conflict !== "memberCode") {
+        return { ok: false, message: "Unable to create this member. Please try again." };
+      }
     }
   }
 
@@ -319,16 +390,20 @@ export async function updateMember(
 
   const existing = await prisma.member.findFirst({
     where: { id: memberId, ...accessibleMemberWhere(actor) },
-    select: { id: true, primaryBranchId: true, firstName: true, lastName: true, status: true },
+    select: { id: true, gymId: true, primaryBranchId: true, firstName: true, lastName: true, status: true },
   });
   const branch = await getAccessibleBranch(actor, input.primaryBranchId);
 
-  if (!existing || !branch) {
+  if (!existing || !branch || branch.gymId !== existing.gymId) {
     return { ok: false, message: "Member or branch access was not found." };
   }
 
   if (!(await trainerIsEligible(input.assignedTrainerId, branch.id))) {
     return { ok: false, message: "Choose a trainer assigned to the selected branch." };
+  }
+  const duplicateContact = await findDuplicateContact(existing.gymId, input, existing.id);
+  if (duplicateContact) {
+    return { ok: false, message: duplicateContactMessage(duplicateContact) };
   }
 
   await prisma.$transaction(async (transaction) => {
@@ -448,6 +523,16 @@ export async function importMembers(
   if (!branch || input.members.some((member) => member.primaryBranchId !== branch.id)) {
     return { ok: false, message: "You cannot import members into that branch." };
   }
+  const importDuplicate = duplicateContactInImport(input.members);
+  if (importDuplicate) {
+    return { ok: false, message: `The import contains a duplicate ${importDuplicate}.` };
+  }
+  for (const member of input.members) {
+    const duplicateContact = await findDuplicateContact(branch.gymId, member);
+    if (duplicateContact) {
+      return { ok: false, message: duplicateContactMessage(duplicateContact) };
+    }
+  }
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
     try {
@@ -482,6 +567,13 @@ export async function importMembers(
       return { ok: true, count: input.members.length };
     } catch (error) {
       if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") {
+        return { ok: false, message: "Unable to import these members. Please try again." };
+      }
+      const conflict = uniqueConflictKind(error);
+      if (conflict === "email" || conflict === "phone") {
+        return { ok: false, message: duplicateContactMessage(conflict) };
+      }
+      if (conflict !== "memberCode") {
         return { ok: false, message: "Unable to import these members. Please try again." };
       }
     }

@@ -1,0 +1,14 @@
+export const DEFAULT_DUPLICATE_CHECKIN_WINDOW_MINUTES = 30;
+
+export const ATTENDANCE_METHODS = ["SEARCH", "SCANNER", "QR", "OVERRIDE"] as const;
+
+export type AttendanceMethod = (typeof ATTENDANCE_METHODS)[number];
+
+export type CheckInFailureCode =
+  | "MEMBER_INACTIVE"
+  | "NO_MEMBERSHIP"
+  | "MEMBERSHIP_PENDING"
+  | "MEMBERSHIP_FROZEN"
+  | "MEMBERSHIP_EXPIRED"
+  | "MEMBERSHIP_CANCELLED"
+  | "DUPLICATE_CHECKIN";

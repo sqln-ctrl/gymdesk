@@ -62,7 +62,7 @@ function formValues(formData: FormData) {
 }
 
 function isValidMemberId(memberId: string): boolean {
-  return memberId.length > 0 && memberId.length <= 100;
+  return z.string().cuid().safeParse(memberId).success;
 }
 
 export async function createMemberAction(
