@@ -91,16 +91,16 @@ Tests:
 - [ ] Transaction consistency.
 
 ## Phase 5 — Attendance
-- [ ] Model Attendance.
-- [ ] Dedicated check-in screen.
-- [ ] Search by member code/name/phone.
+- [x] Model Attendance.
+- [x] Dedicated check-in screen.
+- [x] Search by member code/name/phone.
 - [ ] QR code generation for member.
-- [ ] Scanner-friendly input.
-- [ ] Membership validation.
-- [ ] Duplicate check-in prevention.
-- [ ] Authorized override with reason.
-- [ ] Recent check-ins list.
-- [ ] Member attendance history.
+- [x] Scanner-friendly input.
+- [x] Membership validation.
+- [x] Duplicate check-in prevention.
+- [x] Authorized override with reason.
+- [x] Recent check-ins list.
+- [x] Member attendance history.
 - [ ] Attendance reports/aggregates.
 
 Tests:
