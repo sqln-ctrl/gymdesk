@@ -54,39 +54,39 @@ Tests:
 - [x] Search/filter.
 
 ## Phase 3 — Membership Plans and Memberships
-- [ ] Model MembershipPlan, Membership, MembershipFreeze.
-- [ ] Plan CRUD.
-- [ ] Sell/create membership.
-- [ ] Membership price calculation.
-- [ ] Membership renewal.
-- [ ] Freeze/unfreeze.
-- [ ] Cancellation.
-- [ ] Manual expiry override with privileged permission.
-- [ ] Membership status derivation/service.
-- [ ] Expiring/expired views.
+- [x] Model MembershipPlan, Membership, MembershipFreeze.
+- [x] Plan CRUD.
+- [x] Sell/create membership.
+- [x] Membership price calculation.
+- [x] Membership renewal.
+- [x] Freeze/unfreeze.
+- [x] Cancellation.
+- [x] Manual expiry override with privileged permission.
+- [x] Membership status derivation/service.
+- [x] Expiring/expired views.
 
 Tests:
-- [ ] Start/end date calculations.
-- [ ] Renewal does not shorten an active membership.
-- [ ] Freeze extension rules.
-- [ ] Cancellation behavior.
+- [x] Start/end date calculations.
+- [x] Renewal does not shorten an active membership.
+- [x] Freeze extension rules.
+- [x] Cancellation behavior.
 
 ## Phase 4 — Billing
-- [ ] Model Invoice, InvoiceItem, Payment, Refund.
-- [ ] Invoice numbering strategy.
-- [ ] Create invoice during membership sale.
-- [ ] Record full payment.
-- [ ] Record partial payment.
-- [ ] Outstanding balance calculation.
-- [ ] Receipt view/print layout.
-- [ ] Refund workflow.
-- [ ] Void invoice workflow.
-- [ ] Daily payments view.
-- [ ] Payment method filters.
+- [x] Model Invoice, InvoiceItem, Payment, Refund.
+- [x] Invoice numbering strategy.
+- [x] Create invoice during membership sale.
+- [x] Record full payment.
+- [x] Record partial payment.
+- [x] Outstanding balance calculation.
+- [x] Receipt view/print layout.
+- [x] Refund workflow.
+- [x] Void invoice workflow.
+- [x] Daily payments view.
+- [x] Payment method filters.
 
 Tests:
-- [ ] Money arithmetic in minor units.
-- [ ] Partial payment state transitions.
+- [x] Money arithmetic in minor units.
+- [x] Partial payment state transitions.
 - [ ] Refund records preserve original payment.
 - [ ] Transaction consistency.
 
@@ -94,14 +94,14 @@ Tests:
 - [x] Model Attendance.
 - [x] Dedicated check-in screen.
 - [x] Search by member code/name/phone.
-- [ ] QR code generation for member.
+- [x] QR code generation for member.
 - [x] Scanner-friendly input.
 - [x] Membership validation.
 - [x] Duplicate check-in prevention.
 - [x] Authorized override with reason.
 - [x] Recent check-ins list.
 - [x] Member attendance history.
-- [ ] Attendance reports/aggregates.
+- [x] Attendance reports/aggregates.
 
 Tests:
 - [ ] Active membership can check in.
@@ -110,12 +110,12 @@ Tests:
 - [ ] Override is permission-gated and audited.
 
 ## Phase 6 — Staff and Trainers
-- [ ] Staff management screens.
-- [ ] Branch assignments.
-- [ ] Trainer profile/specialization.
-- [ ] Assigned member list.
-- [ ] Role change audit log.
-- [ ] Staff deactivate/reactivate.
+- [x] Staff management screens.
+- [x] Branch assignments.
+- [x] Trainer profile/specialization.
+- [x] Assigned member list.
+- [x] Role change audit log.
+- [x] Staff deactivate/reactivate.
 
 ## Phase 7 — Workout Plans
 - [ ] Exercise library model/UI.

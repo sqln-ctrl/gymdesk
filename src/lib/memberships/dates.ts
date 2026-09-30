@@ -63,6 +63,10 @@ export function renewalStartDate(currentEndDate: Date, now = new Date()): Date {
   return dayAfterCurrentMembership > today ? dayAfterCurrentMembership : today;
 }
 
+export function extendedExpiryForFreeze(membershipEndDate: Date, freezeStartDate: Date, freezeEndDate: Date): Date {
+  return addUtcDays(membershipEndDate, inclusiveUtcDays(freezeStartDate, freezeEndDate));
+}
+
 export function deriveMembershipStatus(input: MembershipStatusInput, now = new Date()): MembershipStatus {
   const today = startOfUtcDay(now);
   if (input.cancelledAt) return "CANCELLED";

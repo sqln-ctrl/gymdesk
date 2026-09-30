@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { deriveMembershipStatus, membershipEndDate, renewalStartDate } from "./dates";
+import { deriveMembershipStatus, extendedExpiryForFreeze, membershipEndDate, renewalStartDate } from "./dates";
 
 describe("membership date rules", () => {
   it("calculates inclusive durations from a UTC start date", () => {
@@ -46,5 +46,13 @@ describe("membership date rules", () => {
       .toBe("2026-07-01T00:00:00.000Z");
     expect(renewalStartDate(new Date("2026-05-31T00:00:00.000Z"), new Date("2026-06-15T12:00:00.000Z")).toISOString())
       .toBe("2026-06-15T00:00:00.000Z");
+  });
+
+  it("extends an expiry by the inclusive number of frozen days", () => {
+    expect(extendedExpiryForFreeze(
+      new Date("2026-06-30T00:00:00.000Z"),
+      new Date("2026-06-10T00:00:00.000Z"),
+      new Date("2026-06-12T00:00:00.000Z"),
+    ).toISOString()).toBe("2026-07-03T00:00:00.000Z");
   });
 });

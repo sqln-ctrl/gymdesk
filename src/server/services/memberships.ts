@@ -5,7 +5,7 @@ import { Prisma } from "@prisma/client";
 import { writeAuditLog } from "@/lib/audit/service";
 import type { CurrentUser } from "@/lib/auth/session";
 import { type MembershipStatus, MEMBERSHIP_STATUS_LABELS } from "@/lib/memberships/constants";
-import { addUtcDays, deriveMembershipStatus, inclusiveUtcDays, membershipEndDate, renewalStartDate, startOfUtcDay } from "@/lib/memberships/dates";
+import { addUtcDays, deriveMembershipStatus, extendedExpiryForFreeze, inclusiveUtcDays, membershipEndDate, renewalStartDate, startOfUtcDay } from "@/lib/memberships/dates";
 import { calculateMembershipPricing } from "@/lib/memberships/pricing";
 import type {
   MembershipCancellationInput,
@@ -17,6 +17,7 @@ import type {
 import { prisma } from "@/lib/db/prisma";
 import { OWNER_ROLE_KEY } from "@/lib/permissions/keys";
 import { canAccessBranch, hasPermission } from "@/lib/permissions/policy";
+import { createMembershipInvoice } from "@/server/services/billing";
 
 type ServiceResult<T> = { ok: true; data: T } | { ok: false; message: string };
 
@@ -105,7 +106,7 @@ async function getAccessibleBranch(actor: CurrentUser, branchId: string) {
 
   return prisma.branch.findFirst({
     where: { id: branchId, gymId: { in: [...actor.gymIds] }, isActive: true },
-    select: { id: true, gymId: true, name: true },
+    select: { id: true, gymId: true, name: true, code: true },
   });
 }
 
@@ -273,12 +274,12 @@ export async function setMembershipPlanActive(actor: CurrentUser, planId: string
   return { ok: true, data: undefined };
 }
 
-export async function sellMembership(actor: CurrentUser, input: SellMembershipInput): Promise<ServiceResult<{ membershipId: string }>> {
+export async function sellMembership(actor: CurrentUser, input: SellMembershipInput): Promise<ServiceResult<{ membershipId: string; invoiceId: string }>> {
   if (!hasPermission(actor, "membership.sell")) return { ok: false, message: "You do not have permission to sell memberships." };
   const [branch, member, plan] = await Promise.all([
     getAccessibleBranch(actor, input.branchId),
     prisma.member.findFirst({ where: { id: input.memberId, ...accessibleMemberWhere(actor) }, select: { id: true, gymId: true, primaryBranchId: true, status: true } }),
-    prisma.membershipPlan.findFirst({ where: { id: input.planId, isActive: true }, select: { id: true, gymId: true, durationValue: true, durationUnit: true, priceMinor: true, registrationFeeMinor: true, taxRateBasisPoints: true } }),
+    prisma.membershipPlan.findFirst({ where: { id: input.planId, isActive: true }, select: { id: true, name: true, gymId: true, durationValue: true, durationUnit: true, priceMinor: true, registrationFeeMinor: true, taxRateBasisPoints: true } }),
   ]);
   if (!branch || !member || !plan || member.gymId !== branch.gymId || plan.gymId !== branch.gymId || member.primaryBranchId !== branch.id) {
     return { ok: false, message: "The member, plan, or branch is not available for this sale." };
@@ -322,9 +323,22 @@ export async function sellMembership(actor: CurrentUser, input: SellMembershipIn
       entityId: created.id,
       after: { memberId: created.memberId, branchId: created.branchId, planId: created.planId, startDate: created.startDate, endDate: created.endDate, totalMinor: created.totalMinor },
     });
-    return created;
+    const invoice = await createMembershipInvoice(transaction, {
+      membershipId: created.id,
+      memberId: created.memberId,
+      branchId: created.branchId,
+      branchCode: branch.code,
+      planName: plan.name,
+      issueDate: new Date(),
+      subtotalMinor: created.priceMinor,
+      discountMinor: created.discountMinor,
+      taxMinor: created.taxMinor,
+      totalMinor: created.totalMinor,
+      actorUserId: actor.id,
+    });
+    return { membershipId: created.id, invoiceId: invoice.id };
   });
-  return { ok: true, data: { membershipId: membership.id } };
+  return { ok: true, data: membership };
 }
 
 export async function getMembershipSaleOptions(actor: CurrentUser, memberId: string): Promise<MembershipSaleOptions | null> {
@@ -375,7 +389,7 @@ export async function freezeMembership(actor: CurrentUser, membershipId: string,
     return { ok: false, message: "This freeze exceeds the plan's remaining freeze allowance." };
   }
 
-  const newEndDate = addUtcDays(membership.endDate, freezeDays);
+  const newEndDate = extendedExpiryForFreeze(membership.endDate, input.startDate, input.endDate);
   await prisma.$transaction(async (transaction) => {
     await transaction.membershipFreeze.create({
       data: { membershipId, startDate: input.startDate, endDate: input.endDate, reason: input.reason, extendsExpiry: true, createdById: actor.id },
@@ -500,6 +514,12 @@ export async function listMemberships(actor: CurrentUser, status?: MembershipSta
     totalMinor: membership.totalMinor,
   }));
   return status ? items.filter((item) => item.status === status) : items;
+}
+
+export async function listExpiringMemberships(actor: CurrentUser, days = 30): Promise<MembershipListItem[]> {
+  const cutoff = addUtcDays(new Date(), Math.max(0, Math.min(days, 365)));
+  const memberships = await listMemberships(actor);
+  return memberships.filter((membership) => membership.status === "ACTIVE" && membership.endDate <= cutoff);
 }
 
 export { MEMBERSHIP_STATUS_LABELS };

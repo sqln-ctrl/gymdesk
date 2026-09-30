@@ -12,6 +12,7 @@ export const PERMISSION_KEYS = [
   "payment.record",
   "payment.refund",
   "invoice.read",
+  "invoice.void",
   "report.finance",
   "report.read",
   "settings.manage",

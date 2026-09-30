@@ -1,0 +1,19 @@
+"use client";
+
+import { useActionState } from "react";
+
+import { initialWorkoutFormState } from "@/lib/workouts/form-state";
+import { createExerciseAction, setExerciseActiveAction } from "@/server/actions/workouts";
+
+type Exercise = { id: string; gymId: string; name: string; category: string | null; equipment: string | null; instructions: string | null; mediaUrl: string | null; isActive: boolean };
+
+export function ExerciseLibrary({ exercises, gyms, canManage }: { exercises: Exercise[]; gyms: Array<{ id: string; name: string }>; canManage: boolean }) {
+  const [state, formAction, isPending] = useActionState(createExerciseAction, initialWorkoutFormState);
+  return <div className="space-y-6">{canManage ? <section className="rounded-xl border bg-[var(--surface)] p-5"><h2 className="font-semibold">Add exercise</h2><form action={formAction} className="mt-4 grid gap-3 sm:grid-cols-2"><select className="h-10 rounded-lg border bg-white px-3 text-sm" defaultValue={gyms.length === 1 ? gyms[0].id : ""} name="gymId" required><option disabled value="">Choose gym</option>{gyms.map((gym) => <option key={gym.id} value={gym.id}>{gym.name}</option>)}</select><input className="h-10 rounded-lg border px-3 text-sm" maxLength={120} name="name" placeholder="Exercise name" required /><input className="h-10 rounded-lg border px-3 text-sm" maxLength={100} name="category" placeholder="Category / body part" /><input className="h-10 rounded-lg border px-3 text-sm" maxLength={100} name="equipment" placeholder="Equipment" /><input className="h-10 rounded-lg border px-3 text-sm sm:col-span-2" maxLength={500} name="mediaUrl" placeholder="Optional video or image URL" type="url" /><textarea className="min-h-20 rounded-lg border px-3 py-2 text-sm sm:col-span-2" maxLength={2000} name="instructions" placeholder="Instructions" /><button className="h-10 rounded-lg bg-[var(--brand)] px-4 text-sm font-semibold text-white disabled:opacity-50 sm:w-fit" disabled={isPending} type="submit">{isPending ? "Adding..." : "Add exercise"}</button>{state.message ? <p className={`text-sm sm:col-span-2 ${state.status === "error" ? "text-[var(--danger)]" : "text-emerald-700"}`}>{state.message}</p> : null}</form></section> : null}<section className="overflow-hidden rounded-xl border bg-[var(--surface)]"><div className="border-b px-5 py-4"><h2 className="font-semibold">Exercise library</h2></div>{exercises.length === 0 ? <p className="px-5 py-10 text-sm text-[var(--muted-foreground)]">No exercises have been added yet.</p> : <ul className="divide-y">{exercises.map((exercise) => <li className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-start sm:justify-between" key={exercise.id}><div><p className="font-medium">{exercise.name} {!exercise.isActive ? <span className="ml-2 text-xs text-[var(--muted-foreground)]">Inactive</span> : null}</p><p className="mt-1 text-sm text-[var(--muted-foreground)]">{[exercise.category, exercise.equipment].filter(Boolean).join(" · ") || "No category or equipment"}</p>{exercise.instructions ? <p className="mt-2 max-w-2xl text-sm text-[var(--muted-foreground)]">{exercise.instructions}</p> : null}</div>{canManage ? <ExerciseStatusForm exerciseId={exercise.id} isActive={exercise.isActive} /> : null}</li>)}</ul>}</section></div>;
+}
+
+function ExerciseStatusForm({ exerciseId, isActive }: { exerciseId: string; isActive: boolean }) {
+  const action = setExerciseActiveAction.bind(null, exerciseId, !isActive);
+  const [state, formAction, isPending] = useActionState(action, initialWorkoutFormState);
+  return <form action={formAction} className="flex items-center gap-2"><button className="rounded-lg border px-3 py-2 text-xs font-semibold disabled:opacity-50" disabled={isPending} type="submit">{isActive ? "Deactivate" : "Reactivate"}</button>{state.status === "error" ? <span className="text-xs text-[var(--danger)]">{state.message}</span> : null}</form>;
+}

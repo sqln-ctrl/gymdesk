@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { MemberStatusBadge } from "@/components/members/status-badge";
 import { MemberStatusForm } from "@/components/members/member-status-form";
 import { MemberAvatarForm } from "@/components/members/member-avatar-form";
+import { MemberQrCard } from "@/components/attendance/member-qr-card";
 import { Button } from "@/components/ui/button";
 import { hasPermission, requireCurrentUser } from "@/lib/permissions/guards";
 import { getMemberDetail } from "@/server/services/members";
@@ -67,6 +68,7 @@ export default async function MemberProfilePage({ params }: PageProps) {
         <span className="border-b-2 border-[var(--brand)] px-1 pb-3 text-[var(--brand)]">Overview</span>
         <Link className="px-1 pb-3 text-[var(--muted-foreground)] hover:text-[var(--foreground)]" href={`/members/${member.id}/memberships`}>Memberships</Link>
         <Link className="px-1 pb-3 text-[var(--muted-foreground)] hover:text-[var(--foreground)]" href={`/members/${member.id}/attendance`}>Attendance</Link>
+        <Link className="px-1 pb-3 text-[var(--muted-foreground)] hover:text-[var(--foreground)]" href={`/members/${member.id}/workouts`}>Workouts</Link>
         <span className="px-1 pb-3 text-[var(--muted-foreground)]">Billing (coming next)</span>
       </nav>
 
@@ -88,6 +90,9 @@ export default async function MemberProfilePage({ params }: PageProps) {
             <div><dt className="text-[var(--muted-foreground)]">Emergency contact</dt><dd className="mt-1 font-medium">{display(member.emergencyContactName)}{member.emergencyContactPhone ? ` · ${member.emergencyContactPhone}` : ""}</dd></div>
           </dl>
         </article>
+        <div className="md:col-span-2">
+          <MemberQrCard memberCode={member.memberCode} memberId={member.id} />
+        </div>
         <article className="rounded-xl border bg-[var(--surface)] p-5 md:col-span-2">
           <h2 className="font-semibold">Staff notes</h2>
           <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[var(--muted-foreground)]">{display(member.notes)}</p>

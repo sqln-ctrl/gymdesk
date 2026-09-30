@@ -3,7 +3,6 @@ import Link from "next/link";
 import type { CurrentUser } from "@/lib/auth/session";
 
 const upcomingNavigation = [
-  ["Billing"],
   ["Trainers & staff", "Workouts", "Classes", "Equipment"],
   ["Reports", "Settings"],
 ] as const;
@@ -45,6 +44,30 @@ export function AppSidebar({ user }: { user: CurrentUser }) {
           href="/attendance"
         >
           Attendance
+        </Link>
+        <Link
+          className="block rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
+          href="/invoices"
+        >
+          Billing
+        </Link>
+        <Link
+          className="block rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
+          href="/payments"
+        >
+          Payments
+        </Link>
+        <Link
+          className="block rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
+          href="/staff"
+        >
+          Staff & trainers
+        </Link>
+        <Link
+          className="block rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
+          href="/workouts"
+        >
+          Workouts
         </Link>
         {upcomingNavigation.map((group) => (
           <div key={group[0]} className="space-y-1">

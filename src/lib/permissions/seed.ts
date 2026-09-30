@@ -25,6 +25,7 @@ const permissionNames: Record<PermissionKey, string> = {
   "payment.record": "Record payments",
   "payment.refund": "Refund payments",
   "invoice.read": "View invoices",
+  "invoice.void": "Void invoices",
   "report.finance": "View financial reports",
   "report.read": "View operational reports",
   "settings.manage": "Manage settings",

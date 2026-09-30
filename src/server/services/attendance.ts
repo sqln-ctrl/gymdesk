@@ -1,10 +1,9 @@
 import "server-only";
 
-import { Prisma } from "@prisma/client";
-
 import { writeAuditLog } from "@/lib/audit/service";
 import type { CurrentUser } from "@/lib/auth/session";
 import { DEFAULT_DUPLICATE_CHECKIN_WINDOW_MINUTES, type CheckInFailureCode } from "@/lib/attendance/constants";
+import { memberIdFromQrPayload } from "@/lib/attendance/qr";
 import type { CheckInInput } from "@/lib/attendance/schemas";
 import { prisma } from "@/lib/db/prisma";
 import { deriveMembershipStatus } from "@/lib/memberships/dates";
@@ -29,6 +28,13 @@ export type AttendanceEntry = {
   checkInAt: Date;
   method: string;
   wasOverridden: boolean;
+};
+
+export type AttendanceReport = {
+  totalCheckIns: number;
+  uniqueMembers: number;
+  daily: Array<{ date: string; count: number }>;
+  peakHours: Array<{ hour: number; count: number }>;
 };
 
 function hasOwnerAccess(actor: CurrentUser): boolean {
@@ -81,21 +87,40 @@ export async function getAttendanceBranchOptions(actor: CurrentUser): Promise<Ar
   return branches.map((branch) => ({ id: branch.id, label: `${branch.name} (${branch.code})` }));
 }
 
+export async function getAttendanceReportBranchOptions(actor: CurrentUser): Promise<Array<{ id: string; label: string }>> {
+  if (!hasPermission(actor, "report.read")) return [];
+  const branches = await prisma.branch.findMany({
+    where: {
+      gymId: { in: [...actor.gymIds] },
+      isActive: true,
+      ...(hasOwnerAccess(actor) ? {} : { id: { in: [...actor.branchIds] } }),
+    },
+    select: { id: true, name: true, code: true },
+    orderBy: { name: "asc" },
+  });
+  return branches.map((branch) => ({ id: branch.id, label: `${branch.name} (${branch.code})` }));
+}
+
 export async function searchCheckInMembers(actor: CurrentUser, branchId: string, search: string): Promise<CheckInCandidate[]> {
   if (!hasPermission(actor, "attendance.checkin") || search.trim().length < 2) return [];
   const branch = await getAccessibleBranch(actor, branchId);
   if (!branch) return [];
   const query = search.trim().slice(0, 100);
+  const memberId = memberIdFromQrPayload(query);
   const members = await prisma.member.findMany({
     where: {
       gymId: branch.gymId,
       primaryBranchId: branch.id,
-      OR: [
-        { memberCode: { contains: query } },
-        { firstName: { contains: query } },
-        { lastName: { contains: query } },
-        { phone: { contains: query } },
-      ],
+      ...(memberId
+        ? { id: memberId }
+        : {
+            OR: [
+              { memberCode: { contains: query } },
+              { firstName: { contains: query } },
+              { lastName: { contains: query } },
+              { phone: { contains: query } },
+            ],
+          }),
     },
     select: { id: true, memberCode: true, firstName: true, lastName: true, phone: true, status: true },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
@@ -202,4 +227,50 @@ export async function listMemberAttendance(actor: CurrentUser, memberId: string)
     select: { id: true, memberId: true, checkInAt: true, method: true, overrideReason: true, member: { select: { firstName: true, lastName: true, memberCode: true } } },
   });
   return records.map((record) => ({ id: record.id, memberId: record.memberId, memberName: `${record.member.firstName} ${record.member.lastName}`, memberCode: record.member.memberCode, checkInAt: record.checkInAt, method: record.method, wasOverridden: Boolean(record.overrideReason) }));
+}
+
+export async function getAttendanceReport(
+  actor: CurrentUser,
+  input: { branchId?: string; days: number },
+): Promise<AttendanceReport | null> {
+  if (!hasPermission(actor, "report.read")) return null;
+  const days = Math.max(1, Math.min(input.days, 90));
+  if (input.branchId && !(await getAccessibleBranch(actor, input.branchId))) return null;
+
+  const end = new Date();
+  const start = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate()));
+  start.setUTCDate(start.getUTCDate() - (days - 1));
+  const records = await prisma.attendance.findMany({
+    where: {
+      checkInAt: { gte: start },
+      branch: { gymId: { in: [...actor.gymIds] } },
+      ...(input.branchId
+        ? { branchId: input.branchId }
+        : hasOwnerAccess(actor) ? {} : { branchId: { in: [...actor.branchIds] } }),
+    },
+    select: { memberId: true, checkInAt: true },
+  });
+
+  const countByDay = new Map<string, number>();
+  const countByHour = new Map<number, number>();
+  const memberIds = new Set<string>();
+  for (const record of records) {
+    const day = record.checkInAt.toISOString().slice(0, 10);
+    countByDay.set(day, (countByDay.get(day) ?? 0) + 1);
+    const hour = record.checkInAt.getUTCHours();
+    countByHour.set(hour, (countByHour.get(hour) ?? 0) + 1);
+    memberIds.add(record.memberId);
+  }
+
+  const daily = Array.from({ length: days }, (_, index) => {
+    const day = new Date(start);
+    day.setUTCDate(day.getUTCDate() + index);
+    const key = day.toISOString().slice(0, 10);
+    return { date: key, count: countByDay.get(key) ?? 0 };
+  });
+  const peakHours = Array.from(countByHour, ([hour, count]) => ({ hour, count }))
+    .sort((left, right) => right.count - left.count || left.hour - right.hour)
+    .slice(0, 5);
+
+  return { totalCheckIns: records.length, uniqueMembers: memberIds.size, daily, peakHours };
 }

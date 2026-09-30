@@ -6,9 +6,25 @@ import { z } from "zod";
 
 import { getCurrentUser } from "@/lib/auth/session";
 import type { MembershipFormState } from "@/lib/memberships/form-state";
-import { membershipPlanInputSchema, sellMembershipInputSchema } from "@/lib/memberships/schemas";
+import {
+  membershipCancellationSchema,
+  membershipExpiryOverrideSchema,
+  membershipFreezeInputSchema,
+  membershipPlanInputSchema,
+  sellMembershipInputSchema,
+} from "@/lib/memberships/schemas";
 import { hasPermission } from "@/lib/permissions/policy";
-import { createMembershipPlan, renewMembership, sellMembership, setMembershipPlanActive, updateMembershipPlan } from "@/server/services/memberships";
+import {
+  cancelMembership,
+  createMembershipPlan,
+  freezeMembership,
+  overrideMembershipExpiry,
+  renewMembership,
+  sellMembership,
+  setMembershipPlanActive,
+  unfreezeMembership,
+  updateMembershipPlan,
+} from "@/server/services/memberships";
 
 function sessionError(): MembershipFormState {
   return { status: "error", message: "Your session has expired. Sign in again to continue." };
@@ -90,7 +106,7 @@ export async function sellMembershipAction(memberId: string, _previousState: Mem
   if (!result.ok) return { status: "error", message: result.message };
   revalidatePath("/memberships");
   revalidatePath(`/members/${memberId}`);
-  redirect(`/members/${memberId}`);
+  redirect(`/invoices/${result.data.invoiceId}`);
 }
 
 export async function renewMembershipAction(memberId: string, membershipId: string, _previousState: MembershipFormState, _formData: FormData): Promise<MembershipFormState> {
@@ -105,5 +121,67 @@ export async function renewMembershipAction(memberId: string, membershipId: stri
   revalidatePath("/memberships");
   revalidatePath(`/members/${memberId}`);
   revalidatePath(`/members/${memberId}/memberships`);
+  return { status: "idle" };
+}
+
+function validMembershipRefs(memberId: string, membershipId: string): boolean {
+  return z.string().cuid().safeParse(memberId).success && z.string().cuid().safeParse(membershipId).success;
+}
+
+function revalidateMembership(memberId: string): void {
+  revalidatePath("/memberships");
+  revalidatePath(`/members/${memberId}`);
+  revalidatePath(`/members/${memberId}/memberships`);
+}
+
+export async function freezeMembershipAction(memberId: string, membershipId: string, _previousState: MembershipFormState, formData: FormData): Promise<MembershipFormState> {
+  const actor = await getCurrentUser();
+  if (!actor) return sessionError();
+  if (!hasPermission(actor, "membership.sell")) return { status: "error", message: "You do not have permission to freeze memberships." };
+  if (!validMembershipRefs(memberId, membershipId)) return { status: "error", message: "The selected membership is invalid." };
+  const parsed = membershipFreezeInputSchema.safeParse({ startDate: formData.get("startDate"), endDate: formData.get("endDate"), reason: formData.get("reason") });
+  if (!parsed.success) return validationError(parsed.error.flatten().fieldErrors);
+  const result = await freezeMembership(actor, membershipId, parsed.data);
+  if (!result.ok) return { status: "error", message: result.message };
+  revalidateMembership(memberId);
+  return { status: "idle" };
+}
+
+export async function unfreezeMembershipAction(memberId: string, membershipId: string, _previousState: MembershipFormState, _formData: FormData): Promise<MembershipFormState> {
+  void _previousState;
+  void _formData;
+  const actor = await getCurrentUser();
+  if (!actor) return sessionError();
+  if (!hasPermission(actor, "membership.sell")) return { status: "error", message: "You do not have permission to unfreeze memberships." };
+  if (!validMembershipRefs(memberId, membershipId)) return { status: "error", message: "The selected membership is invalid." };
+  const result = await unfreezeMembership(actor, membershipId);
+  if (!result.ok) return { status: "error", message: result.message };
+  revalidateMembership(memberId);
+  return { status: "idle" };
+}
+
+export async function cancelMembershipAction(memberId: string, membershipId: string, _previousState: MembershipFormState, formData: FormData): Promise<MembershipFormState> {
+  const actor = await getCurrentUser();
+  if (!actor) return sessionError();
+  if (!hasPermission(actor, "membership.sell")) return { status: "error", message: "You do not have permission to cancel memberships." };
+  if (!validMembershipRefs(memberId, membershipId)) return { status: "error", message: "The selected membership is invalid." };
+  const parsed = membershipCancellationSchema.safeParse({ reason: formData.get("reason") });
+  if (!parsed.success) return validationError(parsed.error.flatten().fieldErrors);
+  const result = await cancelMembership(actor, membershipId, parsed.data);
+  if (!result.ok) return { status: "error", message: result.message };
+  revalidateMembership(memberId);
+  return { status: "idle" };
+}
+
+export async function overrideMembershipExpiryAction(memberId: string, membershipId: string, _previousState: MembershipFormState, formData: FormData): Promise<MembershipFormState> {
+  const actor = await getCurrentUser();
+  if (!actor) return sessionError();
+  if (!hasPermission(actor, "membership.override")) return { status: "error", message: "You do not have permission to override membership expiry." };
+  if (!validMembershipRefs(memberId, membershipId)) return { status: "error", message: "The selected membership is invalid." };
+  const parsed = membershipExpiryOverrideSchema.safeParse({ endDate: formData.get("endDate"), reason: formData.get("reason") });
+  if (!parsed.success) return validationError(parsed.error.flatten().fieldErrors);
+  const result = await overrideMembershipExpiry(actor, membershipId, parsed.data);
+  if (!result.ok) return { status: "error", message: result.message };
+  revalidateMembership(memberId);
   return { status: "idle" };
 }
