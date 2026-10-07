@@ -69,6 +69,7 @@ export default async function MemberProfilePage({ params }: PageProps) {
         <Link className="px-1 pb-3 text-[var(--muted-foreground)] hover:text-[var(--foreground)]" href={`/members/${member.id}/memberships`}>Memberships</Link>
         <Link className="px-1 pb-3 text-[var(--muted-foreground)] hover:text-[var(--foreground)]" href={`/members/${member.id}/attendance`}>Attendance</Link>
         <Link className="px-1 pb-3 text-[var(--muted-foreground)] hover:text-[var(--foreground)]" href={`/members/${member.id}/workouts`}>Workouts</Link>
+        <Link className="px-1 pb-3 text-[var(--muted-foreground)] hover:text-[var(--foreground)]" href={`/members/${member.id}/progress`}>Progress</Link>
         <span className="px-1 pb-3 text-[var(--muted-foreground)]">Billing (coming next)</span>
       </nav>
 

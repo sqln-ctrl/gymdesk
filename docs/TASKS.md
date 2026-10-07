@@ -128,12 +128,12 @@ Tests:
 - [ ] Member read-only view.
 
 ## Phase 8 — Progress Tracking
-- [ ] Progress entry model.
-- [ ] Add measurement entry.
-- [ ] Historical timeline.
-- [ ] Recharts metric history charts.
-- [ ] Optional progress photos.
-- [ ] Secure photo access.
+- [x] Progress entry model.
+- [x] Add measurement entry.
+- [x] Historical timeline.
+- [x] Recharts metric history charts.
+- [x] Optional progress photos.
+- [x] Secure photo access.
 
 ## Phase 9 — Classes and Bookings
 - [ ] Model class definition/session/booking/waitlist.

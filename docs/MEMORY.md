@@ -74,6 +74,7 @@ Add only durable notes below this line as implementation progresses.
 - 2026-09-30: Non-empty member email addresses and phone numbers are unique within a gym. This prevents ambiguous member lookup and supports the future member-portal association; member codes remain the stable primary identifier.
 - 2026-09-30: Membership dates are UTC all-day values and status is derived by the shared membership domain helper, rather than trusting the persisted status alone. Duration is inclusive of its start date; a freeze extends expiry by its scheduled inclusive days and early unfreeze retracts unused extension days.
 - 2026-09-30: Attendance currently uses a centralized 30-minute duplicate check-in window. The window is intentionally a named default until it becomes a branch setting in Phase 13; membership validation stays fresh and every authorized override is audited.
+- 2026-10-07: Progress entries use UTC all-day dates and are visible only within the member's branch scope; trainer-only users are additionally limited to their assigned members. Progress photos use the local private-storage adapter and an authorized route rather than a public URL, pending a production object-storage adapter.
 
 <!-- Example:
 - 2026-10-02: Chose Auth.js credentials + database sessions because staff session revocation is required.

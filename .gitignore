@@ -11,6 +11,7 @@
 .env.local
 /prisma/*.db
 /prisma/*.db-journal
+/uploads
 
 # tests and logs
 /coverage
