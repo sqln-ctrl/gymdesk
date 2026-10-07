@@ -3,8 +3,7 @@ import Link from "next/link";
 import type { CurrentUser } from "@/lib/auth/session";
 
 const upcomingNavigation = [
-  ["Trainers & staff", "Workouts", "Classes", "Equipment"],
-  ["Reports", "Settings"],
+  ["Reports"],
 ] as const;
 
 export function AppSidebar({ user }: { user: CurrentUser }) {
@@ -57,18 +56,9 @@ export function AppSidebar({ user }: { user: CurrentUser }) {
         >
           Payments
         </Link>
-        <Link
-          className="block rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
-          href="/staff"
-        >
-          Staff & trainers
-        </Link>
-        <Link
-          className="block rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
-          href="/workouts"
-        >
-          Workouts
-        </Link>
+        <Link className="block rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]" href="/classes">Classes</Link>
+        <Link className="block rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]" href="/equipment">Equipment</Link>
+        <Link className="block rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]" href="/settings">Settings</Link>
         {upcomingNavigation.map((group) => (
           <div key={group[0]} className="space-y-1">
             {group.map((item) => (
