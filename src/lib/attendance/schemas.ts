@@ -11,3 +11,14 @@ export const checkInInputSchema = z.object({
 });
 
 export type CheckInInput = z.infer<typeof checkInInputSchema>;
+
+export const dailyAttendanceInputSchema = z.object({
+  branchId: z.string().cuid(),
+  attendanceDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).transform((value) => new Date(`${value}T00:00:00.000Z`)),
+  entries: z.array(z.object({ memberId: z.string().cuid(), status: z.enum(["PRESENT", "ABSENT"]) })).min(1).max(500),
+}).superRefine((input, context) => {
+  const ids = input.entries.map((entry) => entry.memberId);
+  if (new Set(ids).size !== ids.length) context.addIssue({ code: z.ZodIssueCode.custom, path: ["entries"], message: "Each member may appear only once." });
+});
+
+export type DailyAttendanceInput = z.infer<typeof dailyAttendanceInputSchema>;

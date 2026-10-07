@@ -5,6 +5,7 @@ import type { CurrentUser } from "@/lib/auth/session";
 import { DEFAULT_DUPLICATE_CHECKIN_WINDOW_MINUTES, type CheckInFailureCode } from "@/lib/attendance/constants";
 import { memberIdFromQrPayload } from "@/lib/attendance/qr";
 import type { CheckInInput } from "@/lib/attendance/schemas";
+import type { DailyAttendanceInput } from "@/lib/attendance/schemas";
 import { prisma } from "@/lib/db/prisma";
 import { deriveMembershipStatus } from "@/lib/memberships/dates";
 import { OWNER_ROLE_KEY } from "@/lib/permissions/keys";
@@ -36,6 +37,8 @@ export type AttendanceReport = {
   daily: Array<{ date: string; count: number }>;
   peakHours: Array<{ hour: number; count: number }>;
 };
+
+export type DailyRosterEntry = { id: string; memberCode: string; fullName: string; status: "PRESENT" | "ABSENT" };
 
 function hasOwnerAccess(actor: CurrentUser): boolean {
   return actor.roleKeys.includes(OWNER_ROLE_KEY);
@@ -133,6 +136,47 @@ export async function searchCheckInMembers(actor: CurrentUser, branchId: string,
     phone: member.phone,
     status: member.status,
   }));
+}
+
+export async function listAttendanceMembers(actor: CurrentUser, branchId: string): Promise<CheckInCandidate[]> {
+  if (!hasPermission(actor, "attendance.checkin")) return [];
+  const branch = await getAccessibleBranch(actor, branchId);
+  if (!branch) return [];
+  const members = await prisma.member.findMany({
+    where: { gymId: branch.gymId, primaryBranchId: branch.id, status: "ACTIVE" },
+    select: { id: true, memberCode: true, firstName: true, lastName: true, phone: true, status: true },
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    take: 50,
+  });
+  return members.map((member) => ({ id: member.id, memberCode: member.memberCode, fullName: `${member.firstName} ${member.lastName}`, phone: member.phone, status: member.status }));
+}
+
+export async function getDailyAttendanceRoster(actor: CurrentUser, branchId: string, attendanceDate: Date): Promise<DailyRosterEntry[]> {
+  if (!hasPermission(actor, "attendance.checkin")) return [];
+  const branch = await getAccessibleBranch(actor, branchId);
+  if (!branch) return [];
+  const [members, records] = await Promise.all([
+    prisma.member.findMany({ where: { gymId: branch.gymId, primaryBranchId: branch.id, status: "ACTIVE" }, select: { id: true, memberCode: true, firstName: true, lastName: true }, orderBy: [{ lastName: "asc" }, { firstName: "asc" }], take: 500 }),
+    prisma.dailyAttendance.findMany({ where: { branchId: branch.id, attendanceDate }, select: { memberId: true, status: true } }),
+  ]);
+  const statusByMember = new Map(records.map((record) => [record.memberId, record.status]));
+  return members.map((member) => ({ id: member.id, memberCode: member.memberCode, fullName: `${member.firstName} ${member.lastName}`, status: statusByMember.get(member.id) === "PRESENT" ? "PRESENT" : "ABSENT" }));
+}
+
+export async function saveDailyAttendance(actor: CurrentUser, input: DailyAttendanceInput): Promise<ServiceResult<{ savedCount: number }>> {
+  if (!hasPermission(actor, "attendance.checkin")) return { ok: false, code: "FORBIDDEN", message: "You do not have permission to save daily attendance." };
+  const branch = await getAccessibleBranch(actor, input.branchId);
+  if (!branch) return { ok: false, code: "FORBIDDEN", message: "You cannot save attendance for this branch." };
+  const activeMembers = await prisma.member.findMany({ where: { gymId: branch.gymId, primaryBranchId: branch.id, status: "ACTIVE" }, select: { id: true }, take: 501 });
+  const expectedIds = new Set(activeMembers.map((member) => member.id));
+  if (activeMembers.length > 500 || input.entries.length !== expectedIds.size || input.entries.some((entry) => !expectedIds.has(entry.memberId))) return { ok: false, code: "VALIDATION", message: "The roster changed. Refresh the page and save again." };
+  await prisma.$transaction(async (transaction) => {
+    for (const entry of input.entries) {
+      await transaction.dailyAttendance.upsert({ where: { memberId_branchId_attendanceDate: { memberId: entry.memberId, branchId: branch.id, attendanceDate: input.attendanceDate } }, create: { memberId: entry.memberId, branchId: branch.id, attendanceDate: input.attendanceDate, status: entry.status, markedById: actor.id }, update: { status: entry.status, markedById: actor.id } });
+    }
+    await writeAuditLog(transaction, { actorUserId: actor.id, action: "DAILY_ATTENDANCE_SAVED", entityType: "DailyAttendance", entityId: `${branch.id}:${input.attendanceDate.toISOString().slice(0, 10)}`, after: { branchId: branch.id, attendanceDate: input.attendanceDate.toISOString().slice(0, 10), count: input.entries.length } });
+  });
+  return { ok: true, data: { savedCount: input.entries.length } };
 }
 
 export async function checkInMember(actor: CurrentUser, input: CheckInInput): Promise<ServiceResult<{ checkInAt: Date; overridden: boolean }>> {

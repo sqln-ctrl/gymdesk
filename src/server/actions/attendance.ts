@@ -4,9 +4,9 @@ import { revalidatePath } from "next/cache";
 
 import { getCurrentUser } from "@/lib/auth/session";
 import type { AttendanceFormState } from "@/lib/attendance/form-state";
-import { checkInInputSchema } from "@/lib/attendance/schemas";
+import { checkInInputSchema, dailyAttendanceInputSchema } from "@/lib/attendance/schemas";
 import { hasPermission } from "@/lib/permissions/policy";
-import { checkInMember } from "@/server/services/attendance";
+import { checkInMember, saveDailyAttendance } from "@/server/services/attendance";
 
 export async function checkInMemberAction(
   _previousState: AttendanceFormState,
@@ -33,4 +33,17 @@ export async function checkInMemberAction(
     message: result.data.overridden ? "Member checked in with an authorized override." : "Member checked in successfully.",
     checkInAt: result.data.checkInAt.toISOString(),
   };
+}
+
+export async function saveDailyAttendanceAction(_previousState: AttendanceFormState, formData: FormData): Promise<AttendanceFormState> {
+  const actor = await getCurrentUser();
+  if (!actor) return { status: "error", message: "Your session has expired. Sign in again to continue." };
+  let entries: unknown;
+  try { entries = JSON.parse(String(formData.get("entriesJson") ?? "")); } catch { return { status: "error", message: "Attendance selections could not be read. Try again." }; }
+  const parsed = dailyAttendanceInputSchema.safeParse({ branchId: formData.get("branchId"), attendanceDate: formData.get("attendanceDate"), entries });
+  if (!parsed.success) return { status: "error", message: "The attendance roster is invalid. Refresh and try again." };
+  const result = await saveDailyAttendance(actor, parsed.data);
+  if (!result.ok) return { status: "error", message: result.message, code: result.code };
+  revalidatePath("/attendance");
+  return { status: "success", message: `Attendance saved for ${result.data.savedCount} members.` };
 }
