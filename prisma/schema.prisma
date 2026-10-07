@@ -8,102 +8,109 @@ datasource db {
 }
 
 model Gym {
-  id        String   @id @default(cuid())
-  name      String
-  logoUrl   String?
-  currency  String   @default("PKR")
-  timezone  String   @default("Asia/Karachi")
-  branches  Branch[]
-  members   Member[]
-  plans     MembershipPlan[]
-  exercises Exercise[]
+  id               String            @id @default(cuid())
+  name             String
+  logoUrl          String?
+  currency         String            @default("PKR")
+  timezone         String            @default("Asia/Karachi")
+  branches         Branch[]
+  members          Member[]
+  plans            MembershipPlan[]
+  exercises        Exercise[]
   workoutTemplates WorkoutTemplate[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 }
 
 model Branch {
-  id              String          @id @default(cuid())
-  gymId           String
-  code            String
-  name            String
-  phone           String?
-  email           String?
-  address         String?
-  isActive        Boolean         @default(true)
-  gym             Gym             @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  id               String            @id @default(cuid())
+  gymId            String
+  code             String
+  name             String
+  phone            String?
+  email            String?
+  address          String?
+  isActive         Boolean           @default(true)
+  gym              Gym               @relation(fields: [gymId], references: [id], onDelete: Restrict)
   staffAssignments BranchUser[]
-  primaryMembers  Member[]        @relation("PrimaryBranch")
-  memberships     Membership[]
-  attendance      Attendance[]
-  invoices        Invoice[]
-  payments        Payment[]
+  primaryMembers   Member[]          @relation("PrimaryBranch")
+  memberships      Membership[]
+  attendance       Attendance[]
+  dailyAttendance  DailyAttendance[]
+  invoices         Invoice[]
+  payments         Payment[]
+  fitnessClasses   FitnessClass[]
+  classSessions    ClassSession[]
+  equipment        Equipment[]
   invoiceSequences InvoiceSequence[]
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
   @@unique([gymId, code])
   @@index([gymId, isActive])
 }
 
 model User {
-  id               String       @id @default(cuid())
-  email            String       @unique
-  passwordHash     String?
-  name             String
-  phone            String?
-  status           String       @default("ACTIVE")
-  roles            UserRole[]
-  branchAssignments BranchUser[]
-  staffProfile     StaffProfile?
-  assignedMembers  Member[]     @relation("AssignedTrainer")
-  membershipsCreated Membership[] @relation("MembershipCreatedBy")
-  attendanceEvents Attendance[] @relation("AttendanceSourceUser")
-  paymentsCreated  Payment[]    @relation("PaymentCreatedBy")
-  refundsCreated   Refund[]     @relation("RefundCreatedBy")
-  workoutTemplatesCreated WorkoutTemplate[] @relation("WorkoutTemplateCreatedBy")
-  memberWorkoutPlans MemberWorkoutPlan[] @relation("MemberWorkoutTrainer")
-  auditLogs        AuditLog[]   @relation("AuditActor")
-  sessions         UserSession[]
-  passwordResetTokens PasswordResetToken[]
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  id                      String               @id @default(cuid())
+  email                   String               @unique
+  passwordHash            String?
+  name                    String
+  phone                   String?
+  status                  String               @default("ACTIVE")
+  roles                   UserRole[]
+  branchAssignments       BranchUser[]
+  staffProfile            StaffProfile?
+  assignedMembers         Member[]             @relation("AssignedTrainer")
+  membershipsCreated      Membership[]         @relation("MembershipCreatedBy")
+  attendanceEvents        Attendance[]         @relation("AttendanceSourceUser")
+  dailyAttendanceMarked   DailyAttendance[]    @relation("DailyAttendanceMarkedBy")
+  paymentsCreated         Payment[]            @relation("PaymentCreatedBy")
+  refundsCreated          Refund[]             @relation("RefundCreatedBy")
+  workoutTemplatesCreated WorkoutTemplate[]    @relation("WorkoutTemplateCreatedBy")
+  memberWorkoutPlans      MemberWorkoutPlan[]  @relation("MemberWorkoutTrainer")
+  progressEntriesRecorded ProgressEntry[]      @relation("ProgressRecordedBy")
+  classesTaught           FitnessClass[]       @relation("ClassTrainer")
+  auditLogs               AuditLog[]           @relation("AuditActor")
+  sessions                UserSession[]
+  passwordResetTokens     PasswordResetToken[]
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
 
   @@index([status])
 }
 
 model UserSession {
-  id        String   @id @default(cuid())
-  userId    String
-  tokenHash String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
   lastSeenAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, expiresAt])
   @@index([expiresAt])
 }
 
 model PasswordResetToken {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  tokenHash String   @unique
+  tokenHash String    @unique
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, expiresAt])
   @@index([expiresAt])
 }
 
 model LoginThrottle {
-  subjectHash  String   @id
-  attempts     Int      @default(0)
+  subjectHash     String    @id
+  attempts        Int       @default(0)
   windowStartedAt DateTime
-  lockedUntil  DateTime?
-  updatedAt    DateTime @updatedAt
+  lockedUntil     DateTime?
+  updatedAt       DateTime  @updatedAt
 }
 
 model Role {
@@ -130,8 +137,8 @@ model Permission {
 model UserRole {
   userId String
   roleId String
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@id([userId, roleId])
 }
@@ -155,72 +162,76 @@ model BranchUser {
 }
 
 model StaffProfile {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  hireDate        DateTime?
-  specialization  String?
-  certifications  String?
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  hireDate       DateTime?
+  specialization String?
+  certifications String?
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 model Member {
-  id                String        @id @default(cuid())
-  gymId             String
-  primaryBranchId   String
-  memberCode        String
-  firstName         String
-  lastName          String
-  phone             String?
-  email             String?
-  avatarUrl         String?
-  dateOfBirth       DateTime?
-  emergencyContactName String?
+  id                    String               @id @default(cuid())
+  gymId                 String
+  primaryBranchId       String
+  memberCode            String
+  firstName             String
+  lastName              String
+  phone                 String?
+  email                 String?
+  avatarUrl             String?
+  dateOfBirth           DateTime?
+  emergencyContactName  String?
   emergencyContactPhone String?
-  address           String?
-  joinDate          DateTime      @default(now())
-  status            String        @default("ACTIVE")
-  assignedTrainerId String?
-  notes             String?
-  gym               Gym           @relation(fields: [gymId], references: [id], onDelete: Restrict)
-  primaryBranch     Branch        @relation("PrimaryBranch", fields: [primaryBranchId], references: [id], onDelete: Restrict)
-  assignedTrainer   User?         @relation("AssignedTrainer", fields: [assignedTrainerId], references: [id], onDelete: SetNull)
-  memberships       Membership[]
-  attendance        Attendance[]
-  invoices          Invoice[]
-  payments          Payment[]
-  workoutPlans      MemberWorkoutPlan[]
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  address               String?
+  joinDate              DateTime             @default(now())
+  status                String               @default("ACTIVE")
+  assignedTrainerId     String?
+  notes                 String?
+  gym                   Gym                  @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  primaryBranch         Branch               @relation("PrimaryBranch", fields: [primaryBranchId], references: [id], onDelete: Restrict)
+  assignedTrainer       User?                @relation("AssignedTrainer", fields: [assignedTrainerId], references: [id], onDelete: SetNull)
+  memberships           Membership[]
+  attendance            Attendance[]
+  dailyAttendance       DailyAttendance[]
+  invoices              Invoice[]
+  payments              Payment[]
+  workoutPlans          MemberWorkoutPlan[]
+  progressEntries       ProgressEntry[]
+  classBookings         ClassBooking[]
+  classWaitlistEntries  ClassWaitlistEntry[]
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
 
   @@unique([gymId, memberCode])
+  @@unique([gymId, phone])
+  @@unique([gymId, email])
   @@index([gymId, status])
   @@index([primaryBranchId, status])
   @@index([phone])
   @@index([email])
   @@index([lastName, firstName])
-  @@unique([gymId, phone])
-  @@unique([gymId, email])
 }
 
 model MembershipPlan {
-  id                    String       @id @default(cuid())
-  gymId                 String
-  name                  String
-  description           String?
-  durationValue         Int
-  durationUnit          String
-  priceMinor            Int
-  registrationFeeMinor  Int          @default(0)
-  taxRateBasisPoints    Int          @default(0)
-  freezeDaysAllowed     Int          @default(0)
-  graceDays             Int          @default(0)
-  isActive              Boolean      @default(true)
-  gym                   Gym          @relation(fields: [gymId], references: [id], onDelete: Restrict)
-  memberships           Membership[]
-  createdAt             DateTime     @default(now())
-  updatedAt             DateTime     @updatedAt
+  id                   String       @id @default(cuid())
+  gymId                String
+  name                 String
+  description          String?
+  durationValue        Int
+  durationUnit         String
+  priceMinor           Int
+  registrationFeeMinor Int          @default(0)
+  taxRateBasisPoints   Int          @default(0)
+  freezeDaysAllowed    Int          @default(0)
+  graceDays            Int          @default(0)
+  isActive             Boolean      @default(true)
+  gym                  Gym          @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  memberships          Membership[]
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
 
   @@unique([gymId, name])
   @@index([gymId, isActive])
@@ -271,20 +282,36 @@ model MembershipFreeze {
 }
 
 model Attendance {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   memberId       String
   branchId       String
-  checkInAt      DateTime @default(now())
+  checkInAt      DateTime  @default(now())
   checkOutAt     DateTime?
   method         String
   sourceUserId   String?
   overrideReason String?
-  member         Member   @relation(fields: [memberId], references: [id], onDelete: Restrict)
-  branch         Branch   @relation(fields: [branchId], references: [id], onDelete: Restrict)
-  sourceUser     User?    @relation("AttendanceSourceUser", fields: [sourceUserId], references: [id], onDelete: SetNull)
+  member         Member    @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  branch         Branch    @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  sourceUser     User?     @relation("AttendanceSourceUser", fields: [sourceUserId], references: [id], onDelete: SetNull)
 
   @@index([memberId, checkInAt])
   @@index([branchId, checkInAt])
+}
+
+model DailyAttendance {
+  id             String   @id @default(cuid())
+  memberId       String
+  branchId       String
+  attendanceDate DateTime
+  status         String
+  markedById     String
+  markedAt       DateTime @updatedAt
+  member         Member   @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  branch         Branch   @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  markedBy       User     @relation("DailyAttendanceMarkedBy", fields: [markedById], references: [id], onDelete: Restrict)
+
+  @@unique([memberId, branchId, attendanceDate])
+  @@index([branchId, attendanceDate, status])
 }
 
 model Invoice {
@@ -331,8 +358,8 @@ model InvoiceItem {
 model InvoiceSequence {
   branchId   String
   year       Int
-  nextNumber Int      @default(1)
-  branch     Branch   @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  nextNumber Int    @default(1)
+  branch     Branch @relation(fields: [branchId], references: [id], onDelete: Restrict)
 
   @@id([branchId, year])
 }
@@ -378,48 +405,48 @@ model Refund {
 }
 
 model Exercise {
-  id           String   @id @default(cuid())
-  gymId        String
-  name         String
-  category     String?
-  equipment    String?
-  instructions String?
-  mediaUrl     String?
-  isActive     Boolean  @default(true)
-  gym          Gym      @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  id                String                    @id @default(cuid())
+  gymId             String
+  name              String
+  category          String?
+  equipment         String?
+  instructions      String?
+  mediaUrl          String?
+  isActive          Boolean                   @default(true)
+  gym               Gym                       @relation(fields: [gymId], references: [id], onDelete: Restrict)
   templateExercises WorkoutTemplateExercise[]
-  memberExercises MemberWorkoutExercise[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  memberExercises   MemberWorkoutExercise[]
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
 
   @@unique([gymId, name])
   @@index([gymId, isActive])
 }
 
 model WorkoutTemplate {
-  id          String   @id @default(cuid())
+  id          String               @id @default(cuid())
   gymId       String
   name        String
   description String?
   createdById String
-  gym         Gym      @relation(fields: [gymId], references: [id], onDelete: Restrict)
-  createdBy   User     @relation("WorkoutTemplateCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  gym         Gym                  @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  createdBy   User                 @relation("WorkoutTemplateCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   days        WorkoutTemplateDay[]
   memberPlans MemberWorkoutPlan[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
 
   @@unique([gymId, name])
   @@index([gymId, createdAt])
 }
 
 model WorkoutTemplateDay {
-  id         String   @id @default(cuid())
+  id         String                    @id @default(cuid())
   templateId String
   dayNumber  Int
   title      String
   notes      String?
-  template   WorkoutTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  template   WorkoutTemplate           @relation(fields: [templateId], references: [id], onDelete: Cascade)
   exercises  WorkoutTemplateExercise[]
 
   @@unique([templateId, dayNumber])
@@ -427,7 +454,7 @@ model WorkoutTemplateDay {
 }
 
 model WorkoutTemplateExercise {
-  id              String   @id @default(cuid())
+  id              String             @id @default(cuid())
   dayId           String
   exerciseId      String
   position        Int
@@ -438,40 +465,40 @@ model WorkoutTemplateExercise {
   durationSeconds Int?
   notes           String?
   day             WorkoutTemplateDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
-  exercise        Exercise @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+  exercise        Exercise           @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
 
   @@unique([dayId, position])
   @@index([exerciseId])
 }
 
 model MemberWorkoutPlan {
-  id          String   @id @default(cuid())
-  memberId    String
-  trainerId   String
-  templateId  String?
-  name        String
-  goal        String?
-  startDate   DateTime
-  endDate     DateTime?
-  status      String   @default("ACTIVE")
-  member      Member   @relation(fields: [memberId], references: [id], onDelete: Restrict)
-  trainer     User     @relation("MemberWorkoutTrainer", fields: [trainerId], references: [id], onDelete: Restrict)
-  template    WorkoutTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  days        MemberWorkoutDay[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String             @id @default(cuid())
+  memberId   String
+  trainerId  String
+  templateId String?
+  name       String
+  goal       String?
+  startDate  DateTime
+  endDate    DateTime?
+  status     String             @default("ACTIVE")
+  member     Member             @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  trainer    User               @relation("MemberWorkoutTrainer", fields: [trainerId], references: [id], onDelete: Restrict)
+  template   WorkoutTemplate?   @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  days       MemberWorkoutDay[]
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
 
   @@index([memberId, status])
   @@index([trainerId, status])
 }
 
 model MemberWorkoutDay {
-  id        String   @id @default(cuid())
+  id        String                  @id @default(cuid())
   planId    String
   dayNumber Int
   title     String
   notes     String?
-  plan      MemberWorkoutPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  plan      MemberWorkoutPlan       @relation(fields: [planId], references: [id], onDelete: Cascade)
   exercises MemberWorkoutExercise[]
 
   @@unique([planId, dayNumber])
@@ -479,7 +506,7 @@ model MemberWorkoutDay {
 }
 
 model MemberWorkoutExercise {
-  id              String   @id @default(cuid())
+  id              String           @id @default(cuid())
   dayId           String
   exerciseId      String
   position        Int
@@ -490,23 +517,167 @@ model MemberWorkoutExercise {
   durationSeconds Int?
   notes           String?
   day             MemberWorkoutDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
-  exercise        Exercise @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+  exercise        Exercise         @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
 
   @@unique([dayId, position])
   @@index([exerciseId])
 }
 
+model ProgressEntry {
+  id             String          @id @default(cuid())
+  memberId       String
+  recordedById   String
+  recordedAt     DateTime
+  weightKg       Float?
+  bodyFatPercent Float?
+  chestCm        Float?
+  waistCm        Float?
+  hipsCm         Float?
+  armsCm         Float?
+  thighsCm       Float?
+  notes          String?
+  member         Member          @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  recordedBy     User            @relation("ProgressRecordedBy", fields: [recordedById], references: [id], onDelete: Restrict)
+  photos         ProgressPhoto[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([memberId, recordedAt])
+  @@index([recordedById, recordedAt])
+}
+
+model ProgressPhoto {
+  id              String        @id @default(cuid())
+  progressEntryId String
+  storageKey      String        @unique
+  mimeType        String
+  sizeBytes       Int
+  progressEntry   ProgressEntry @relation(fields: [progressEntryId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+
+  @@index([progressEntryId])
+}
+
+model FitnessClass {
+  id                     String         @id @default(cuid())
+  branchId               String
+  trainerId              String?
+  name                   String
+  description            String?
+  room                   String?
+  defaultCapacity        Int
+  defaultDurationMinutes Int
+  isActive               Boolean        @default(true)
+  branch                 Branch         @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  trainer                User?          @relation("ClassTrainer", fields: [trainerId], references: [id], onDelete: SetNull)
+  sessions               ClassSession[]
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+
+  @@unique([branchId, name])
+  @@index([branchId, isActive])
+  @@index([trainerId, isActive])
+}
+
+model ClassSession {
+  id             String               @id @default(cuid())
+  fitnessClassId String
+  branchId       String
+  startsAt       DateTime
+  endsAt         DateTime
+  capacity       Int
+  bookedCount    Int                  @default(0)
+  waitlistCount  Int                  @default(0)
+  status         String               @default("SCHEDULED")
+  fitnessClass   FitnessClass         @relation(fields: [fitnessClassId], references: [id], onDelete: Cascade)
+  branch         Branch               @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  bookings       ClassBooking[]
+  waitlist       ClassWaitlistEntry[]
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@unique([fitnessClassId, startsAt])
+  @@index([branchId, startsAt])
+  @@index([fitnessClassId, startsAt])
+}
+
+model ClassBooking {
+  id          String       @id @default(cuid())
+  sessionId   String
+  memberId    String
+  status      String       @default("BOOKED")
+  bookedAt    DateTime     @default(now())
+  cancelledAt DateTime?
+  session     ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  member      Member       @relation(fields: [memberId], references: [id], onDelete: Restrict)
+
+  @@unique([sessionId, memberId])
+  @@index([memberId, bookedAt])
+  @@index([sessionId, status])
+}
+
+model ClassWaitlistEntry {
+  id        String       @id @default(cuid())
+  sessionId String
+  memberId  String
+  position  Int
+  createdAt DateTime     @default(now())
+  session   ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  member    Member       @relation(fields: [memberId], references: [id], onDelete: Restrict)
+
+  @@unique([sessionId, memberId])
+  @@unique([sessionId, position])
+  @@index([memberId, createdAt])
+}
+
+model Equipment {
+  id             String              @id @default(cuid())
+  branchId       String
+  assetCode      String
+  name           String
+  category       String?
+  location       String?
+  purchaseDate   DateTime?
+  warrantyEndsAt DateTime?
+  status         String              @default("ACTIVE")
+  lastServiceAt  DateTime?
+  nextServiceAt  DateTime?
+  branch         Branch              @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  maintenance    MaintenanceRecord[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@unique([branchId, assetCode])
+  @@index([branchId, status, nextServiceAt])
+}
+
+model MaintenanceRecord {
+  id          String    @id @default(cuid())
+  equipmentId String
+  servicedAt  DateTime
+  serviceType String
+  vendor      String?
+  costMinor   Int       @default(0)
+  notes       String?
+  nextDueAt   DateTime?
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@index([equipmentId, servicedAt])
+  @@index([servicedAt])
+}
+
 model AuditLog {
-  id          String   @id @default(cuid())
-  actorUserId String?
-  action      String
-  entityType  String
-  entityId    String
-  beforeJson  String?
-  afterJson   String?
+  id           String   @id @default(cuid())
+  actorUserId  String?
+  action       String
+  entityType   String
+  entityId     String
+  beforeJson   String?
+  afterJson    String?
   metadataJson String?
-  actor       User?    @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
-  createdAt   DateTime @default(now())
+  actor        User?    @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
 
   @@index([entityType, entityId])
   @@index([actorUserId, createdAt])
