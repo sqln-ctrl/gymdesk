@@ -24,6 +24,8 @@ const permissionNames: Record<PermissionKey, string> = {
   "membership.sell": "Sell memberships",
   "payment.record": "Record payments",
   "payment.refund": "Refund payments",
+  "progress.manage": "Record member progress",
+  "progress.read": "View member progress",
   "invoice.read": "View invoices",
   "invoice.void": "Void invoices",
   "report.finance": "View financial reports",
@@ -32,6 +34,11 @@ const permissionNames: Record<PermissionKey, string> = {
   "staff.manage": "Manage staff",
   "attendance.checkin": "Check in members",
   "attendance.override": "Override attendance validation",
+  "class.book": "Book members into classes",
+  "class.manage": "Manage classes and attendance",
+  "class.read": "View classes and class schedules",
+  "equipment.manage": "Manage equipment and maintenance",
+  "equipment.read": "View equipment and maintenance",
   "workout.manage": "Manage workout plans",
   "workout.read": "View workout plans",
 };
@@ -63,13 +70,16 @@ const ROLE_SEEDS: readonly RoleSeed[] = [
       "attendance.checkin",
       "invoice.read",
       "payment.record",
+      "class.book",
+      "class.read",
+      "equipment.read",
     ],
   },
   {
     key: "TRAINER",
     name: "Trainer",
     description: "Manage assigned member workout plans.",
-    permissions: ["member.read", "workout.read", "workout.manage"],
+    permissions: ["member.read", "workout.read", "workout.manage", "progress.read", "progress.manage", "class.read", "class.manage"],
   },
 ];
 
