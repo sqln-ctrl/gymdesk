@@ -2,10 +2,6 @@ import Link from "next/link";
 
 import type { CurrentUser } from "@/lib/auth/session";
 
-const upcomingNavigation = [
-  ["Reports"],
-] as const;
-
 export function AppSidebar({ user }: { user: CurrentUser }) {
   return (
     <aside className="hidden w-64 shrink-0 border-r border-[var(--border)] bg-[var(--surface)] px-3 py-5 lg:flex lg:flex-col">
@@ -58,19 +54,8 @@ export function AppSidebar({ user }: { user: CurrentUser }) {
         </Link>
         <Link className="block rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]" href="/classes">Classes</Link>
         <Link className="block rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]" href="/equipment">Equipment</Link>
+        {user.permissionKeys.includes("report.read") || user.permissionKeys.includes("report.finance") ? <Link className="block rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]" href="/reports">Reports</Link> : null}
         <Link className="block rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted-foreground)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]" href="/settings">Settings</Link>
-        {upcomingNavigation.map((group) => (
-          <div key={group[0]} className="space-y-1">
-            {group.map((item) => (
-              <span
-                className="block rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted-foreground)]"
-                key={item}
-              >
-                {item}
-              </span>
-            ))}
-          </div>
-        ))}
       </nav>
 
       <div className="mt-auto rounded-xl border bg-[var(--surface-muted)] p-3">

@@ -274,7 +274,11 @@ export async function setMembershipPlanActive(actor: CurrentUser, planId: string
   return { ok: true, data: undefined };
 }
 
-export async function sellMembership(actor: CurrentUser, input: SellMembershipInput): Promise<ServiceResult<{ membershipId: string; invoiceId: string }>> {
+export async function sellMembership(
+  actor: CurrentUser,
+  input: SellMembershipInput,
+  renewalOfMembershipId?: string,
+): Promise<ServiceResult<{ membershipId: string; invoiceId: string }>> {
   if (!hasPermission(actor, "membership.sell")) return { ok: false, message: "You do not have permission to sell memberships." };
   const [branch, member, plan] = await Promise.all([
     getAccessibleBranch(actor, input.branchId),
@@ -314,14 +318,29 @@ export async function sellMembership(actor: CurrentUser, input: SellMembershipIn
   const initialStatus = deriveMembershipStatus({ startDate: input.startDate, endDate, cancelledAt: null, freezes: [] });
   const membership = await prisma.$transaction(async (transaction) => {
     const created = await transaction.membership.create({
-      data: { ...input, endDate, status: initialStatus, ...pricing, createdById: actor.id },
+      data: {
+        ...input,
+        endDate,
+        status: initialStatus,
+        isRenewal: Boolean(renewalOfMembershipId),
+        ...pricing,
+        createdById: actor.id,
+      },
     });
     await writeAuditLog(transaction, {
       actorUserId: actor.id,
-      action: "MEMBERSHIP_SOLD",
+      action: renewalOfMembershipId ? "MEMBERSHIP_RENEWED" : "MEMBERSHIP_SOLD",
       entityType: "Membership",
       entityId: created.id,
-      after: { memberId: created.memberId, branchId: created.branchId, planId: created.planId, startDate: created.startDate, endDate: created.endDate, totalMinor: created.totalMinor },
+      after: {
+        memberId: created.memberId,
+        branchId: created.branchId,
+        planId: created.planId,
+        startDate: created.startDate,
+        endDate: created.endDate,
+        totalMinor: created.totalMinor,
+        renewalOfMembershipId: renewalOfMembershipId ?? null,
+      },
     });
     const invoice = await createMembershipInvoice(transaction, {
       membershipId: created.id,
@@ -374,7 +393,17 @@ export async function renewMembership(actor: CurrentUser, membershipId: string):
   const renewalStart = renewalStartDate(existing.endDate);
   const plan = await prisma.membershipPlan.findFirst({ where: { id: existing.planId, isActive: true }, select: { id: true } });
   if (!plan) return { ok: false, message: "Reactivate or choose another plan before renewing this membership." };
-  return sellMembership(actor, { memberId: existing.memberId, branchId: existing.branchId, planId: existing.planId, startDate: renewalStart, discountMinor: 0 });
+  return sellMembership(
+    actor,
+    {
+      memberId: existing.memberId,
+      branchId: existing.branchId,
+      planId: existing.planId,
+      startDate: renewalStart,
+      discountMinor: 0,
+    },
+    existing.id,
+  );
 }
 
 export async function freezeMembership(actor: CurrentUser, membershipId: string, input: MembershipFreezeInput): Promise<ServiceResult<undefined>> {
